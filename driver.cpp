@@ -139,6 +139,8 @@ usb_ralink_device_removed(void *cookie)
 			} else {
 				gDevicesList[i] = NULL;
 				delete device;
+				free(gDeviceNames[i]);
+				gDeviceNames[i] = NULL;
 				TRACE("Device at %ld deleted.\n", i);
 			}
 			break;
