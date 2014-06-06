@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-//#include <lock.h>
+#include "lock.h"
 //#include <util/AutoLock.h>
 
 #include "driver.h"
@@ -28,7 +28,7 @@ usb_module_info* gUSBModule;
 char* gDeviceNames[MAX_DEVICES + 1];
 RalinkUSB* gDevicesList[MAX_DEVICES];
 int32 gOpenMask = 0;
-//mutex gDriverLock;
+mutex gDriverLock;
 static usb_support_descriptor sDescriptor;
 static const char* sDeviceBaseName = "net/usb_ralink/";
 	
@@ -71,7 +71,7 @@ usb_ralink_device_added(usb_device device, void **cookie)
 {
 	*cookie = NULL;
 
-	//MutexLocker lock(gDriverLock); // released on exit
+	MutexLocker lock(gDriverLock); // released on exit
 
 	// check if this is a replug of an existing device first
 	for (int32 i = 0; i < MAX_DEVICES; i++) {
@@ -128,7 +128,7 @@ usb_ralink_device_added(usb_device device, void **cookie)
 status_t
 usb_ralink_device_removed(void *cookie)
 {
-	//MutexLocker lock(gDriverLock); // released on exit
+	MutexLocker lock(gDriverLock); // released on exit
 
 	RalinkUSB* device = (RalinkUSB*)cookie;
 	for (int32 i = 0; i < MAX_DEVICES; i++) {
@@ -175,7 +175,7 @@ init_driver()
 	for (int32 i = 0; i < MAX_DEVICES + 1; i++)
 		gDeviceNames[i] = NULL;
 	
-	//mutex_init(&gDriverLock, DRIVER_NAME"_devices");
+	mutex_init(&gDriverLock, DRIVER_NAME"_devices");
 	
 	sDescriptor.vendor = VENDOR_ID_RALINK;
 	sDescriptor.product = 0x3070;
@@ -192,7 +192,7 @@ uninit_driver()
 	TRACE((DRIVER_NAME": uninit driver\n"));
 	
 	gUSBModule->uninstall_notify(DRIVER_NAME);
-	//mutex_lock(&gDriverLock);
+	mutex_lock(&gDriverLock);
 
 	for (int32 i = 0; i < MAX_DEVICES; i++) {
 		if (gDevicesList[i]) {
@@ -206,7 +206,7 @@ uninit_driver()
 		gDeviceNames[i] = NULL;
 	}
 
-	//mutex_destroy(&gDriverLock);
+	mutex_destroy(&gDriverLock);
 	put_module(B_USB_MODULE_NAME);
 
 	//release_settings();
@@ -216,7 +216,7 @@ uninit_driver()
 const char **
 publish_devices(void)
 {
-	return (const char **)gDeviceNames;
+	return (const char**)gDeviceNames;
 }
 
 
@@ -242,7 +242,7 @@ status_t
 ralink_open(const char *name, uint32 flags, void **cookie)
 {
 	TRACE(DRIVER_NAME": open device %s\n", name);
-	//MutexLocker lock(gDriverLock); // released on exit
+	MutexLocker lock(gDriverLock); // released on exit
 
 	*cookie = NULL;
 	status_t status = ENODEV;
@@ -271,7 +271,7 @@ ralink_free(void *cookie)
 	//TRACE((DRIVER_NAME": free device\n"));
 	RalinkUSB *device = (RalinkUSB *)cookie;
 
-	//MutexLocker lock(gDriverLock); // released on exit
+	MutexLocker lock(gDriverLock); // released on exit
 
 	status_t status = device->Free();
 	for (int32 i = 0; i < MAX_DEVICES; i++) {
