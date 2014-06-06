@@ -643,10 +643,11 @@ RalinkUSB::_LoadMicrocode()
 {
 	const char* firmware = "/system/non-packaged/data/firmware/ralink/rt2870.bin";
 			
-	TRACE_ALWAYS(DRIVER_NAME": loading firmware %s\n", firmware);
+	TRACE_ALWAYS(DRIVER_NAME": selected firmware %s\n", firmware);
 	int fd = open(firmware, B_READ_ONLY);
 	if (fd < 0) {
 		TRACE_ALWAYS(DRIVER_NAME": firmware file unavailable\n");
+		close(fd);
 		return B_ERROR;
 	}
 
@@ -654,12 +655,14 @@ RalinkUSB::_LoadMicrocode()
 	lseek(fd, 0, SEEK_SET);
 	if (fileSize <= 0) {
 		TRACE_ALWAYS(DRIVER_NAME": firmware file seems empty\n");
+		close(fd);
 		return B_ERROR;
 	}
 
 	uint8* buffer = (uint8*)malloc(fileSize);
 	if (buffer == NULL) {
 		TRACE_ALWAYS(DRIVER_NAME":  no memory for firmware buffer\n");
+		close(fd);
 		return B_NO_MEMORY;
 	}
 
