@@ -239,9 +239,6 @@ RalinkUSB::SetupDevice(bool deviceReplugged)
 	if (_ReadEEPROM(RT2860_EEPROM_VERSION, &value) == B_OK)
 		TRACE_ALWAYS(DRIVER_NAME": EEPROM rev=%d, FAE=%d\n", value & 0xff, value >> 8);
 	
-	/* retrieve RF rev. no and various other things from EEPROM */
-	//run_read_eeprom(sc);
-
 	//device_printf(sc->sc_dev,
 	  //  "MAC/BBP RT%04X (rev 0x%04X), RF %s (MIMO %dT%dR), address %s\n",
 	  //  sc->mac_ver, sc->mac_rev, run_get_rf(sc->rf_rev),
@@ -634,9 +631,10 @@ RalinkUSB::_SetupEndpoints()
 status_t
 RalinkUSB::_Reset()
 {
+	size_t dummy;
 	return gUSBModule->send_request(fDevice,
 		USB_REQTYPE_VENDOR | USB_REQTYPE_DEVICE_OUT,
-		RT2870_RESET, 1, 0, 0, NULL, NULL);
+		RT2870_RESET, 1, 0, 0, NULL, &dummy);
 }
 
 
@@ -703,6 +701,7 @@ RalinkUSB::_LoadMicrocode()
 	_Write(RT2860_H2M_MAILBOX_CID, 0xffffffff);
 	_Write(RT2860_H2M_MAILBOX_STATUS, 0xffffffff);
 
+	TRACE_ALWAYS(DRIVER_NAME": firmware reset...\n");
 	size_t actualLength;
 	status_t status = gUSBModule->send_request(fDevice,
 		USB_REQTYPE_VENDOR | USB_REQTYPE_DEVICE_OUT,
@@ -944,7 +943,7 @@ RalinkUSB::_SendMCUCommand(uint8 command, uint16 arg)
 	int ntries;
 
 	for (ntries = 0; ntries < 100; ntries++) {
-		if ((status = _Read(RT2860_H2M_MAILBOX, &tmp)) != 0)
+		if ((status = _Read(RT2860_H2M_MAILBOX, &tmp)) != B_OK)
 			return status;
 		if (!(tmp & RT2860_H2M_BUSY))
 			break;
@@ -953,7 +952,7 @@ RalinkUSB::_SendMCUCommand(uint8 command, uint16 arg)
 		return ETIMEDOUT;
 
 	tmp = RT2860_H2M_BUSY | RT2860_TOKEN_NO_INTR << 16 | arg;
-	if ((status = _Write(RT2860_H2M_MAILBOX, tmp)) == 0)
+	if ((status = _Write(RT2860_H2M_MAILBOX, tmp)) == B_OK)
 		status = _Write(RT2860_HOST_CMD, command);
 	return status;
 }
