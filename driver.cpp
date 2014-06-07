@@ -197,13 +197,8 @@ uninit_driver()
 	mutex_lock(&gDriverLock);
 
 	for (int32 i = 0; i < MAX_DEVICES; i++) {
-		if (gDevicesList[i]) {
-			delete gDevicesList[i];
-			gDevicesList[i] = NULL;
-		}
-	}
-
-	for (int32 i = 0; gDeviceNames[i]; i++) {
+		delete gDevicesList[i];
+		gDevicesList[i] = NULL;
 		free(gDeviceNames[i]);
 		gDeviceNames[i] = NULL;
 	}
@@ -243,17 +238,21 @@ find_device(const char *name)
 status_t
 ralink_open(const char *name, uint32 flags, void **cookie)
 {
-	TRACE(DRIVER_NAME": open device %s\n", name);
+	TRACE(DRIVER_NAME": open device %s ", name);
 	MutexLocker lock(gDriverLock); // released on exit
 
 	*cookie = NULL;
 	status_t status = ENODEV;
-	int32 index = strtol(name + strlen(sDeviceBaseName), NULL, 10);
+	char* slash = strrchr(name, '/');
+	int32 index = strtol(slash, NULL, 10);
+	TRACE(" index %d, ", index);
+	TRACE(" device pointer %p", gDevicesList[index]);
 	if (index >= 0 && index < MAX_DEVICES && gDevicesList[index]) {
 		status = gDevicesList[index]->Open(flags);
 		*cookie = gDevicesList[index];
 	}
 
+	TRACE("\n");
 	return status;
 }
 
@@ -261,8 +260,8 @@ ralink_open(const char *name, uint32 flags, void **cookie)
 status_t
 ralink_close(void *cookie)
 {
-	//TRACE((DRIVER_NAME": close device\n"));
-	RalinkUSB *device = (RalinkUSB *)cookie;
+	TRACE((DRIVER_NAME": close device\n"));
+	RalinkUSB* device = (RalinkUSB*)cookie;
 	return device->Close();
 }
 
@@ -271,7 +270,7 @@ status_t
 ralink_free(void *cookie)
 {
 	//TRACE((DRIVER_NAME": free device\n"));
-	RalinkUSB *device = (RalinkUSB *)cookie;
+	RalinkUSB* device = (RalinkUSB*)cookie;
 
 	MutexLocker lock(gDriverLock); // released on exit
 
@@ -280,11 +279,10 @@ ralink_free(void *cookie)
 		if (gDevicesList[i] == device) {
 			// the device is removed already but as it was open the
 			// removed hook has not deleted the object
-			gDevicesList[i] = NULL;
+			/*gDevicesList[i] = NULL;
 			delete device;
-			free(gDeviceNames[i]);
-			gDeviceNames[i] = NULL;
-			TRACE("Device at %ld deleted.\n", i);
+			
+			TRACE("Device at %ld deleted.\n", i);*/
 			break;
 		}
 	}
