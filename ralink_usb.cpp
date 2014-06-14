@@ -32,9 +32,11 @@
 RalinkUSB::RalinkUSB(usb_device device)
 	:
 	fDevice(device),
+	fDeviceID(0),
 	fStatus(B_ERROR),
 	fOpen(false),
 	fRemoved(false),
+	fNonBlocking(false),
 	fEFuse(false),
 	fNotifyEndpoint(0),
 	fReadEndpoint(0),
@@ -82,6 +84,8 @@ RalinkUSB::Open(uint32 flags)
 	if (fRemoved)
 		return B_ERROR;
 
+	_Reset();
+	
 	status_t result = _StartDevice();
 	if (result != B_OK) {
 		return result;
@@ -115,7 +119,7 @@ RalinkUSB::Close()
 	fOpen = false;
 
 	status_t result = B_OK;//_StopDevice();
-	TRACE("Closed: %#010x!\n", result);
+	TRACE(DRIVER_NAME": Closed: %#010x!\n", result);
 	return result;
 }
 
@@ -123,7 +127,7 @@ RalinkUSB::Close()
 status_t
 RalinkUSB::Free()
 {
-	TRACE("usb_ralink: Free()\n");
+	TRACE(DRIVER_NAME": Free()\n");
 	return B_OK;
 }
 	
@@ -131,7 +135,7 @@ RalinkUSB::Free()
 status_t
 RalinkUSB::Read(off_t position, void* buffer, size_t*numBytes)
 {
-	TRACE("usb_ralink: Read()\n");
+	TRACE(DRIVER_NAME": Read()\n");
 	return B_ERROR;
 }
 	
@@ -139,7 +143,7 @@ RalinkUSB::Read(off_t position, void* buffer, size_t*numBytes)
 status_t
 RalinkUSB::Write(off_t position, const void* buffer, size_t* numBytes)
 {
-	TRACE("usb_ralink: Write()\n");
+	TRACE(DRIVER_NAME": Write()\n");
 	return B_ERROR;
 }
 	
@@ -210,7 +214,7 @@ RalinkUSB::SetupDevice(bool deviceReplugged)
 	// RUN_LOCK(sc)
 	/* wait for the chip to settle */
 	for (ntries = 0; ntries < 100; ntries++) {
-		if (_Read(RT2860_ASIC_VER_ID, &ver) != 0) {
+		if (_Read(RT2860_ASIC_VER_ID, &ver) != B_OK) {
 			//RUN_UNLOCK(sc);
 			return B_ERROR;
 		}
@@ -219,14 +223,14 @@ RalinkUSB::SetupDevice(bool deviceReplugged)
 		_Delay(10);
 	}
 	if (ntries == 100) {
-		TRACE(DRIVER_NAME"timeout waiting for NIC to initialize\n");
+		TRACE(DRIVER_NAME": timeout waiting for NIC to initialize\n");
 		//RUN_UNLOCK(sc);
 		return B_ERROR;
 	}
 	fMACVersion = ver >> 16;
 	fMACRevision = ver & 0xffff;
 
-	TRACE(DRIVER_NAME"_mac_version: 0x%x, revision: %d\n", fMACVersion, fMACRevision);
+	TRACE(DRIVER_NAME": mac_version: 0x%x, revision: %d\n", fMACVersion, fMACRevision);
 	if (fMACVersion >= 0x3070) {
 		uint32 tmp;
 		_Read(RT3070_EFUSE_CTRL, &tmp);
