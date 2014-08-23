@@ -86,7 +86,7 @@ private:
 	status_t			_EtherInit();
 	
 	status_t 			_Write(uint16 reg, uint32 val);
-	status_t 			_Write2(uint16 reg, size_t size, uint16 val);
+	status_t 			_Write2(uint16 reg, uint16 val);
 	status_t			_WriteRegion(uint16 reg, const uint8* buffer, uint16 len);
 	
 	status_t			_Read(uint16 reg, uint32* val);

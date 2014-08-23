@@ -665,7 +665,7 @@ RalinkUSB::_LoadMicrocode()
 
 	uint8* buffer = (uint8*)malloc(fileSize);
 	if (buffer == NULL) {
-		TRACE_ALWAYS(DRIVER_NAME":  no memory for firmware buffer\n");
+		TRACE_ALWAYS(DRIVER_NAME": no memory for firmware buffer\n");
 		close(fd);
 		return B_NO_MEMORY;
 	}
@@ -685,9 +685,9 @@ RalinkUSB::_LoadMicrocode()
 	 * last half is for rt3071.
 	 */
 	uint8* firmwareBase = buffer;
-	if ((fMACVersion) != 0x2860 &&
-	    (fMACVersion) != 0x2872 &&
-	    (fMACVersion) != 0x3070) { 
+	if (fMACVersion != 0x2860 &&
+	    fMACVersion != 0x2872 &&
+	    fMACVersion != 0x3070) { 
 		firmwareBase += 4096;
 	}
 
@@ -751,6 +751,7 @@ RalinkUSB::_LoadMicrocode()
 	return B_OK;
 }
 
+
 status_t
 RalinkUSB::_EtherInit()
 {
@@ -789,18 +790,13 @@ RalinkUSB::_ReadRegion(uint16 reg, uint8* buffer, uint16 size)
 
 
 status_t
-RalinkUSB::_Write2(uint16 reg, size_t size, uint16 val)
+RalinkUSB::_Write2(uint16 reg, uint16 val)
 {
 	size_t actualLength = 0;
 	status_t result = gUSBModule->send_request(fDevice,
 		USB_REQTYPE_VENDOR | USB_REQTYPE_DEVICE_OUT,
 		RT2870_WRITE_2, val, reg, 0, NULL, &actualLength);
 		
-	/*if (sizeof(val) != actualLength) {
-		TRACE_ALWAYS("Size mismatch reading register ! asked %d got %d",
-			sizeof(val), actualLength);
-	}*/
-
 	return result;
 }
 
@@ -814,8 +810,10 @@ RalinkUSB::_WriteRegion(uint16 reg, const uint8* buffer, uint16 len)
 	 * NB: the WRITE_REGION_1 command is not stable on RT2860.
 	 * We thus issue multiple WRITE_2 commands instead.
 	 */
+	dprintf("RalinkUSB::_WriteRegion(%d, %p, len: %u)\n",
+		reg, buffer, len);
 	for (int i = 0; i < len && status == B_OK; i += 2)
-		status = _Write2(reg + i, sizeof(uint8), buffer[i] | buffer[i + 1] << 8);
+		status = _Write2(reg + i, buffer[i] | buffer[i + 1] << 8);
 	return status;
 #else
 	return gUSBModule->send_request(fDevice,
@@ -830,8 +828,8 @@ status_t
 RalinkUSB::_Write(uint16 reg, uint32 val)
 {
 	status_t status;
-	if ((status = _Write2(reg, sizeof(uint16), val & 0xffff)) == B_OK)
-		status = _Write2(reg + 2, sizeof(uint16), val >> 16);
+	if ((status = _Write2(reg, val & 0xffff)) == B_OK)
+		status = _Write2(reg + 2, val >> 16);
 	return status;
 }
 
