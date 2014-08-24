@@ -84,7 +84,7 @@ RalinkUSB::Open(uint32 flags)
 	if (fRemoved)
 		return B_ERROR;
 
-	_Reset();
+	//_Reset();
 	
 	status_t result = _StartDevice();
 	if (result != B_OK) {
@@ -577,6 +577,8 @@ RalinkUSB::_SetupEndpoints()
 		return B_ERROR;
 	}
 
+	gUSBModule->set_configuration(fDevice, config);
+	
 	int notifyEndpoint = -1;
 	int readEndpoint   = -1;
 	int writeEndpoint  = -1;
@@ -592,6 +594,7 @@ RalinkUSB::_SetupEndpoints()
 		if ((epd->attributes & USB_ENDPOINT_ATTR_MASK)
 				== USB_ENDPOINT_ATTR_INTERRUPT) {
 			notifyEndpoint = ep;
+			dprintf("nofify endpoint\n");
 			continue;
 		}
 
@@ -605,12 +608,14 @@ RalinkUSB::_SetupEndpoints()
 		if ((epd->endpoint_address & USB_ENDPOINT_ADDR_DIR_IN)
 				== USB_ENDPOINT_ADDR_DIR_IN) {
 			readEndpoint = ep;
+			dprintf("read endpoint\n");
 			continue;
 		}
 
 		if ((epd->endpoint_address & USB_ENDPOINT_ADDR_DIR_OUT)
 				== USB_ENDPOINT_ADDR_DIR_OUT) {
 			writeEndpoint = ep;
+			dprintf("write endpoint\n");
 			continue;
 		}
 	}
@@ -620,8 +625,6 @@ RalinkUSB::_SetupEndpoints()
 			"read:%d; write:%d\n", notifyEndpoint, readEndpoint, writeEndpoint);
 		return B_ERROR;
 	}
-
-	gUSBModule->set_configuration(fDevice, config);
 
 	//fNotifyEndpoint = interface->endpoint[notifyEndpoint].handle;
 	fReadEndpoint = interface->endpoint[readEndpoint].handle;
@@ -718,15 +721,23 @@ RalinkUSB::_LoadMicrocode()
 		free(buffer);
 		return status;
 	}
+	
+	TRACE_ALWAYS(DRIVER_NAME": firmware reset completed!\n");
+	
+	TRACE_ALWAYS(DRIVER_NAME": delay...\n");
 	_Delay(10);
-
+	
+	TRACE_ALWAYS(DRIVER_NAME": WRITE_MAILBOX\n");
 	_Write(RT2860_H2M_MAILBOX, 0);
 	
+	TRACE_ALWAYS(DRIVER_NAME": _SendMCUCommand()\n");
 	if ((status = _SendMCUCommand(RT2860_MCU_CMD_RFRESET, 0)) != B_OK) {
+		dprintf("MCU Command Sent\n");
 		free(buffer);
 		return status;
 	}
 
+	TRACE_ALWAYS(DRIVER_NAME": Wait for microcontroller...\n");
 	/* wait until microcontroller is ready */
 	int ntries;
 	for (ntries = 0; ntries < 1000; ntries++) {
@@ -744,8 +755,8 @@ RalinkUSB::_LoadMicrocode()
 		return ETIMEDOUT;
 	}
 	TRACE_ALWAYS(DRIVER_NAME": firmware %s ver. %u.%u loaded\n",
-	    (firmwareBase == buffer) ? "RT2870" : "RT3071",
-	    *(firmwareBase + 4092), *(firmwareBase + 4093));
+	    (firmwareBase == buffer) ? "RT2870" : "RT3071", 10, 10);
+//	    *(firmwareBase + 4092), *(firmwareBase + 4093));
 
 	free(buffer);
 	return B_OK;
@@ -795,7 +806,7 @@ RalinkUSB::_Write2(uint16 reg, uint16 val)
 	size_t actualLength = 0;
 	status_t result = gUSBModule->send_request(fDevice,
 		USB_REQTYPE_VENDOR | USB_REQTYPE_DEVICE_OUT,
-		RT2870_WRITE_2, val, reg, 0, NULL, &actualLength);
+		RT2870_WRITE_2, val, reg, sizeof(val), NULL, &actualLength);
 		
 	return result;
 }
@@ -946,7 +957,6 @@ RalinkUSB::_SendMCUCommand(uint8 command, uint16 arg)
 	uint32 tmp;
 	status_t status;
 	int ntries;
-
 	for (ntries = 0; ntries < 100; ntries++) {
 		if ((status = _Read(RT2860_H2M_MAILBOX, &tmp)) != B_OK)
 			return status;
