@@ -172,7 +172,12 @@ RalinkUSB::Control(uint32 op, void* buffer, size_t length)
 			*(uint32 *)buffer = 1500;
 			return B_OK;
 		}
-
+		
+		case ETHER_GET_LINK_STATE: {
+			// TODO: For now, should avoid dhcp requests
+			memset(buffer, 0, sizeof(ether_link_state));
+			return B_OK;
+		}
 		default:
 			TRACE_ALWAYS(DRIVER_NAME": unsupported ioctl 0x%08lx\n", op);
 	}
