@@ -213,6 +213,10 @@ RalinkUSB::Removed()
 status_t
 RalinkUSB::SetupDevice(bool deviceReplugged)
 {
+	status_t status = _LoadMicrocode();
+	if (status < B_OK)
+		return status;
+		
 	uint32 ver;
 	int ntries;
 	
@@ -509,6 +513,8 @@ RalinkUSB::SetupDevice(bool deviceReplugged)
 status_t
 RalinkUSB::CompareAndReattach(usb_device device)
 {
+	TRACE_ALWAYS("CompareAndReattach()\n");
+	
 	const usb_device_descriptor *deviceDescriptor
 		= gUSBModule->get_device_descriptor(device);
 
@@ -534,6 +540,10 @@ RalinkUSB::CompareAndReattach(usb_device device)
 		return result;
 	}
 
+	result = _LoadMicrocode();
+	if (result != B_OK)
+		return result;
+		
 	// we need to setup hardware on device replug
 	result = SetupDevice(true);
 	if (result != B_OK) {
@@ -552,6 +562,7 @@ RalinkUSB::CompareAndReattach(usb_device device)
 status_t
 RalinkUSB::_StartDevice()
 {
+	TRACE_ALWAYS("_StartDevice()\n");
 	status_t status = _LoadMicrocode();
 	if (status != B_OK)
 		return status;
@@ -940,7 +951,7 @@ RalinkUSB::_ReadEFUSE(uint16 addr, uint16* val)
 		_Delay(2);
 	}
 	if (ntries == 100)
-		return (ETIMEDOUT);
+		return ETIMEDOUT;
 
 	if ((tmp & RT3070_EFUSE_AOUT_MASK) == RT3070_EFUSE_AOUT_MASK) {
 		*val = 0xffff;	/* address not found */
