@@ -51,6 +51,7 @@ static usb_notify_hooks sNotifyHooks = {
 RalinkUSB*
 lookup_and_create_device(usb_device device)
 {
+	TRACE_ALWAYS("lookup_and_create_devices()\n");
 	const usb_device_descriptor *deviceDescriptor
 		= gUSBModule->get_device_descriptor(device);
 
@@ -69,6 +70,8 @@ lookup_and_create_device(usb_device device)
 status_t
 usb_ralink_device_added(usb_device device, void **cookie)
 {
+	TRACE_ALWAYS("usb_ralink_device_added()\n");
+	
 	*cookie = NULL;
 
 	MutexLocker lock(gDriverLock); // released on exit
