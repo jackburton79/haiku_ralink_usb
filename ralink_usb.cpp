@@ -513,13 +513,13 @@ RalinkUSB::SetupDevice(bool deviceReplugged)
 status_t
 RalinkUSB::CompareAndReattach(usb_device device)
 {
-	TRACE_ALWAYS("CompareAndReattach()\n");
+	TRACE_ALWAYS(DRIVER_NAME"::CompareAndReattach()\n");
 	
 	const usb_device_descriptor *deviceDescriptor
 		= gUSBModule->get_device_descriptor(device);
 
 	if (deviceDescriptor == NULL) {
-		TRACE_ALWAYS("Error getting USB device descriptor.\n");
+		TRACE_ALWAYS(DRIVER_NAME": Error getting USB device descriptor.\n");
 		return B_ERROR;
 	}
 
@@ -562,7 +562,7 @@ RalinkUSB::CompareAndReattach(usb_device device)
 status_t
 RalinkUSB::_StartDevice()
 {
-	TRACE_ALWAYS("_StartDevice()\n");
+	TRACE_ALWAYS(DRIVER_NAME"::_StartDevice()\n");
 	status_t status = _LoadMicrocode();
 	if (status != B_OK)
 		return status;
@@ -573,22 +573,23 @@ RalinkUSB::_StartDevice()
 status_t
 RalinkUSB::_SetupEndpoints()
 {
+	TRACE_ALWAYS(DRIVER_NAME"::_SetupEndpoints()\n");
 	const usb_configuration_info* config
 		= gUSBModule->get_nth_configuration(fDevice, 0);
 
 	if (config == NULL) {
-		TRACE_ALWAYS("Error of getting USB device configuration.\n");
+		TRACE_ALWAYS(DRIVER_NAME": Error of getting USB device configuration.\n");
 		return B_ERROR;
 	}
 
 	if (config->interface_count <= 0) {
-		TRACE_ALWAYS("Error:no interfaces found in USB device configuration\n");
+		TRACE_ALWAYS(DRIVER_NAME": Error:no interfaces found in USB device configuration\n");
 		return B_ERROR;
 	}
 
 	usb_interface_info* interface = config->interface[RT2860_IFACE_INDEX].active;
 	if (interface == NULL) {
-		TRACE_ALWAYS("Error:invalid active interface in "
+		TRACE_ALWAYS(DRIVER_NAME": Error:invalid active interface in "
 												"USB device configuration\n");
 		return B_ERROR;
 	}
@@ -616,7 +617,7 @@ RalinkUSB::_SetupEndpoints()
 
 		if ((epd->attributes & USB_ENDPOINT_ATTR_MASK)
 				!= USB_ENDPOINT_ATTR_BULK) {
-			TRACE_ALWAYS("Error: USB endpoint type %#04x is unknown.\n",
+			TRACE_ALWAYS(DRIVER_NAME": Error: USB endpoint type %#04x is unknown.\n",
 					epd->attributes);
 			continue;
 		}
@@ -637,7 +638,7 @@ RalinkUSB::_SetupEndpoints()
 	}
 
 	if (/*notifyEndpoint == -1 || */readEndpoint == -1 || writeEndpoint == -1) {
-		TRACE_ALWAYS("Error: not all USB endpoints were found: notify:%d; "
+		TRACE_ALWAYS(DRIVER_NAME": Error: not all USB endpoints were found: notify:%d; "
 			"read:%d; write:%d\n", notifyEndpoint, readEndpoint, writeEndpoint);
 		return B_ERROR;
 	}
@@ -766,7 +767,7 @@ RalinkUSB::_LoadMicrocode()
 		_Delay(10);
 	}
 	if (ntries == 1000) {
-		TRACE_ALWAYS("timeout waiting for MCU to initialize\n");
+		TRACE_ALWAYS(DRIVER_NAME": timeout waiting for MCU to initialize\n");
 		free(buffer);
 		return ETIMEDOUT;
 	}
@@ -808,7 +809,7 @@ RalinkUSB::_ReadRegion(uint16 reg, uint8* buffer, uint16 size)
 		RT2870_READ_REGION_1, 0, reg, size, buffer, &actualLength);
 
 	if (size != actualLength) {
-		TRACE_ALWAYS("Size mismatch reading register ! asked %d got %d",
+		TRACE_ALWAYS(DRIVER_NAME": Size mismatch reading register ! asked %d got %d",
 			size, actualLength);
 	}
 
